@@ -1,0 +1,16 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+}
+
+@layer base {
+  body {
+    @apply bg-slate-50 text-slate-900 antialiased;
+  }
+}
+
+/* CBT Specific Styles */
+.question-palette-btn {
+  @apply w-10 h-10 rounded flex items-center justify-center text-xs font-bold transition-all;
+}
