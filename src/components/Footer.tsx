@@ -7,9 +7,9 @@ export default function Footer() {
       <div className="container mx-auto px-4">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">
           <div className="space-y-4">
-            <Link to="/" className="flex items-center gap-2 text-xl font-bold text-indigo-600">
-              <GraduationCap className="w-8 h-8" />
-              <span>ExamPrep Pro</span>
+            <Link to="/" className="flex items-center gap-2 text-xl font-black italic">
+              <span className="text-slate-800">Sarkari</span>
+              <span className="text-blue-600">TestZone</span>
             </Link>
             <p className="text-slate-500 text-sm leading-relaxed">
               India's most trusted platform for government exam preparation. Real CBT interface, high-quality content, and detailed analytics.
@@ -46,7 +46,7 @@ export default function Footer() {
         </div>
         
         <div className="pt-8 border-t border-slate-100 flex flex-col md:flex-row justify-between items-center gap-4">
-          <p className="text-slate-400 text-xs">© 2024 ExamPrep Pro. All rights reserved. Made with ❤️ for Indian Students.</p>
+          <p className="text-slate-400 text-xs">© 2024 SarkariTestZone. All rights reserved. Made with ❤️ for Indian Students.</p>
           <div className="flex gap-4 text-slate-400">
             <a href="#" className="hover:text-indigo-600 transition-colors"><Twitter className="w-5 h-5" /></a>
             <a href="#" className="hover:text-indigo-600 transition-colors"><Github className="w-5 h-5" /></a>

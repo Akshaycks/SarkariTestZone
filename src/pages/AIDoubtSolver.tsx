@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Send, Bot, User, Sparkles, Loader2, Trash2, HelpCircle } from 'lucide-react';
+import { Send, Bot, User, Sparkles, Loader2, Trash2, HelpCircle, MessageSquare } from 'lucide-react';
 import { GoogleGenAI } from "@google/genai";
+import Markdown from 'react-markdown';
 
 interface Message {
   role: 'user' | 'ai';
@@ -14,14 +15,21 @@ export default function AIDoubtSolver() {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const chatContainerRef = useRef<HTMLDivElement>(null);
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  const scrollToBottom = (behavior: ScrollBehavior = "smooth") => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior, block: "end" });
+    }
   };
 
   useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
+    // Use a small timeout to ensure DOM has updated
+    const timer = setTimeout(() => {
+      scrollToBottom(messages.length <= 1 ? "auto" : "smooth");
+    }, 100);
+    return () => clearTimeout(timer);
+  }, [messages, isLoading]);
 
   const handleSend = async () => {
     if (!input.trim() || isLoading) return;
@@ -37,29 +45,25 @@ export default function AIDoubtSolver() {
     setIsLoading(true);
 
     try {
-      // Use process.env.GEMINI_API_KEY or API_KEY as per guidelines
-      // We check for existence to avoid ReferenceErrors in some environments
       const env = (typeof process !== 'undefined' ? process.env : {}) as any;
       const apiKey = env.GEMINI_API_KEY || env.API_KEY;
       
       if (!apiKey) {
-        throw new Error("API Key is missing. Please ensure it is set in the environment.");
+        throw new Error("API Key is missing.");
       }
 
       const ai = new GoogleGenAI({ apiKey });
-      
-      // Using Pro model for complex educational doubts
       const modelName = "gemini-3.1-pro-preview";
       
-      const response = await ai.models.generateContent({
+      const chat = ai.chats.create({
         model: modelName,
-        contents: [{ role: "user", parts: [{ text: input }] }],
         config: {
-          systemInstruction: "You are an expert educational assistant for Indian competitive exams (SSC, Banking, Railway, UPSC). Your goal is to solve students' doubts clearly and concisely. If a student asks a math or reasoning problem, provide a step-by-step solution. Be encouraging and professional.",
+          systemInstruction: "You are an expert educational assistant for Indian competitive exams (SSC, Banking, Railway, UPSC). Solve students' doubts clearly and concisely. For math/reasoning, provide step-by-step solutions. Use Markdown for formatting (bold, lists, etc.). Be encouraging.",
         }
       });
 
-      const aiContent = response.text || "I'm sorry, I couldn't process that. Please try again.";
+      const result = await chat.sendMessage({ message: input });
+      const aiContent = result.text || "I'm sorry, I couldn't process that. Please try again.";
 
       const aiMessage: Message = {
         role: 'ai',
@@ -86,23 +90,23 @@ export default function AIDoubtSolver() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto h-[calc(100vh-120px)] lg:h-[calc(100vh-200px)] flex flex-col space-y-4 lg:space-y-6">
+    <div className="max-w-4xl mx-auto h-[75vh] md:h-[80vh] flex flex-col gap-4">
       {/* Header */}
-      <div className="bg-white p-4 lg:p-6 rounded-[24px] lg:rounded-[32px] border border-slate-100 shadow-sm flex items-center justify-between">
-        <div className="flex items-center gap-3 lg:gap-4">
-          <div className="w-10 h-10 lg:w-12 lg:h-12 bg-blue-600 rounded-xl lg:rounded-2xl flex items-center justify-center text-white shadow-lg shadow-blue-200">
-            <Bot className="w-6 h-6 lg:w-7 lg:h-7" />
+      <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex items-center justify-between shrink-0">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-blue-200">
+            <Bot className="w-6 h-6" />
           </div>
           <div>
-            <h1 className="text-xl lg:text-2xl font-black text-slate-900 tracking-tight">AI Doubt Solver</h1>
+            <h1 className="text-lg font-black text-slate-900 tracking-tight">AI Doubt Solver</h1>
             <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest flex items-center gap-1">
-              <Sparkles className="w-3 h-3 text-blue-500" /> Powered by Gemini AI
+              <Sparkles className="w-3 h-3 text-blue-500" /> Expert Exam Assistant
             </p>
           </div>
         </div>
         <button 
           onClick={clearChat}
-          className="p-2 lg:p-3 text-slate-400 hover:text-red-500 transition-colors rounded-xl hover:bg-red-50"
+          className="p-2 text-slate-400 hover:text-red-500 transition-colors rounded-lg hover:bg-red-50"
           title="Clear Chat"
         >
           <Trash2 className="w-5 h-5" />
@@ -110,8 +114,12 @@ export default function AIDoubtSolver() {
       </div>
 
       {/* Chat Area */}
-      <div className="flex-1 bg-white rounded-[24px] lg:rounded-[32px] border border-slate-100 shadow-sm overflow-hidden flex flex-col relative">
-        <div className="flex-1 overflow-y-auto p-4 lg:p-6 space-y-4 lg:space-y-6 scrollbar-thin scrollbar-thumb-slate-200 scrollbar-track-transparent">
+      <div className="flex-1 bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden flex flex-col min-h-0">
+        <div 
+          ref={chatContainerRef}
+          className="flex-1 overflow-y-auto p-4 lg:p-6 space-y-4 lg:space-y-6 scroll-smooth"
+          style={{ overflowAnchor: 'none' }}
+        >
           {messages.length === 0 ? (
             <div className="h-full flex flex-col items-center justify-center text-center space-y-4 lg:space-y-6 max-w-md mx-auto">
               <div className="w-16 h-16 lg:w-20 lg:h-20 bg-blue-50 rounded-full flex items-center justify-center text-blue-600">
@@ -151,7 +159,13 @@ export default function AIDoubtSolver() {
                         ? 'bg-blue-600 text-white rounded-tr-none' 
                         : 'bg-slate-50 text-slate-800 rounded-tl-none border border-slate-100'
                     }`}>
-                      {msg.content}
+                      {msg.role === 'ai' ? (
+                        <div className="prose prose-sm max-w-none prose-slate">
+                          <Markdown>{msg.content}</Markdown>
+                        </div>
+                      ) : (
+                        msg.content
+                      )}
                       <p className={`text-[9px] lg:text-[10px] mt-2 font-bold uppercase tracking-widest ${msg.role === 'user' ? 'text-blue-200' : 'text-slate-400'}`}>
                         {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </p>

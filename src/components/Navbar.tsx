@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Trophy, LogOut, User as UserIcon, LogIn, Search, Bell, ChevronDown, Zap, Menu, Sparkles, X } from 'lucide-react';
+import { Trophy, LogOut, User as UserIcon, LogIn, Search, Bell, ChevronDown, Zap, Menu, Sparkles, X, LayoutDashboard } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 export default function Navbar() {
@@ -8,12 +8,44 @@ export default function Navbar() {
   const location = useLocation();
   const [trending, setTrending] = useState<{title: string, id: number}[]>([]);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [isNotifOpen, setIsNotifOpen] = useState(false);
 
   useEffect(() => {
     fetch('/api/trending-exams')
       .then(res => res.json())
-      .then(data => setTrending(data));
+      .then(data => {
+        if (Array.isArray(data)) {
+          setTrending(data);
+        }
+      })
+      .catch(err => console.error("Error fetching trending exams:", err));
   }, []);
+
+  useEffect(() => {
+    if (user) {
+      fetch(`/api/notifications/${user.id}`)
+        .then(res => res.json())
+        .then(data => setNotifications(data));
+    }
+  }, [user]);
+
+  const markAsRead = async (id: number) => {
+    const res = await fetch(`/api/notifications/read/${id}`, { method: 'POST' });
+    if (res.ok) {
+      setNotifications(notifications.map(n => n.id === id ? { ...n, is_read: 1 } : n));
+    }
+  };
+
+  const markAllAsRead = async () => {
+    if (!user) return;
+    const res = await fetch(`/api/notifications/read-all/${user.id}`, { method: 'POST' });
+    if (res.ok) {
+      setNotifications(notifications.map(n => ({ ...n, is_read: 1 })));
+    }
+  };
+
+  const unreadCount = notifications.filter(n => !n.is_read).length;
 
   // Close menu on route change
   useEffect(() => {
@@ -30,6 +62,7 @@ export default function Navbar() {
     { to: '/', label: 'Home', icon: null },
     { to: '/exams', label: 'Mock Tests', icon: null },
     { to: '/leaderboard', label: 'Leaderboard', icon: Trophy },
+    ...(user?.role === 'admin' ? [{ to: '/admin', label: 'Admin', icon: LayoutDashboard }] : []),
     { to: '/ai-doubt-solver', label: 'AI Doubt Solver', icon: Sparkles, special: true },
   ];
 
@@ -39,10 +72,12 @@ export default function Navbar() {
       <div className="container mx-auto px-4 h-16 flex items-center justify-between gap-4">
         {/* Logo */}
         <Link to="/" className="flex items-center gap-2 shrink-0">
-          <div className="bg-blue-600 text-white p-1.5 rounded-md">
-            <Zap className="w-5 h-5 fill-white" />
+          <div className="flex items-center">
+            <span className="text-xl font-black tracking-tighter italic">
+              <span className="text-slate-800">Sarkari</span>
+              <span className="text-blue-600">TestZone</span>
+            </span>
           </div>
-          <span className="text-xl font-black text-blue-900 tracking-tighter">PREPINSTA</span>
         </Link>
 
         {/* Search Bar (Desktop) */}
@@ -59,10 +94,59 @@ export default function Navbar() {
 
         {/* Right Actions */}
         <div className="flex items-center gap-2 sm:gap-3">
-          <button className="p-2 text-slate-400 hover:text-blue-600 transition-colors relative hidden sm:block">
-            <Bell className="w-5 h-5" />
-            <span className="absolute top-2 right-2 w-2 h-2 bg-blue-600 rounded-full border-2 border-white"></span>
-          </button>
+          {user && (
+            <div className="relative">
+              <button 
+                onClick={() => setIsNotifOpen(!isNotifOpen)}
+                className="p-2 text-slate-400 hover:text-blue-600 transition-colors relative"
+              >
+                <Bell className="w-5 h-5" />
+                {unreadCount > 0 && (
+                  <span className="absolute top-2 right-2 w-4 h-4 bg-red-500 text-white text-[10px] flex items-center justify-center rounded-full border-2 border-white">
+                    {unreadCount}
+                  </span>
+                )}
+              </button>
+
+              {isNotifOpen && (
+                <div className="absolute right-0 mt-2 w-80 bg-white rounded-2xl shadow-2xl border border-slate-100 z-[200] overflow-hidden">
+                  <div className="p-4 border-b border-slate-50 flex items-center justify-between bg-slate-50/50">
+                    <h3 className="font-bold text-slate-900">Notifications</h3>
+                    <button 
+                      onClick={markAllAsRead}
+                      className="text-[10px] font-black text-blue-600 uppercase tracking-widest hover:underline"
+                    >
+                      Mark all as read
+                    </button>
+                  </div>
+                  <div className="max-h-[400px] overflow-y-auto">
+                    {notifications.length > 0 ? (
+                      notifications.map(notif => (
+                        <div 
+                          key={notif.id}
+                          onClick={() => markAsRead(notif.id)}
+                          className={`p-4 border-b border-slate-50 hover:bg-slate-50 transition-colors cursor-pointer relative ${!notif.is_read ? 'bg-blue-50/30' : ''}`}
+                        >
+                          {!notif.is_read && <div className="absolute left-2 top-1/2 -translate-y-1/2 w-1.5 h-1.5 bg-blue-600 rounded-full"></div>}
+                          <div className="pl-2">
+                            <p className="text-xs font-black text-blue-600 uppercase tracking-widest mb-1">{notif.type}</p>
+                            <h4 className="text-sm font-bold text-slate-900 mb-1">{notif.title}</h4>
+                            <p className="text-xs text-slate-500 line-clamp-2">{notif.message}</p>
+                            <p className="text-[10px] text-slate-400 mt-2">{new Date(notif.created_at).toLocaleDateString()}</p>
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="p-8 text-center">
+                        <Bell className="w-8 h-8 text-slate-200 mx-auto mb-2" />
+                        <p className="text-sm text-slate-400">No notifications yet</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
 
           {user ? (
             <div className="flex items-center gap-2 sm:gap-3">

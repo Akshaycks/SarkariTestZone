@@ -1,7 +1,9 @@
 export interface User {
   id: number;
   name: string;
-  email: string;
+  phone: string;
+  email?: string;
+  exam_interest?: string;
   role: 'user' | 'admin';
 }
 
@@ -48,7 +50,10 @@ export interface ExamResult {
   wrong_answers: number;
   accuracy: number;
   time_spent_per_question: Record<number, number>;
+  user_answers: Record<number, string>;
   tab_switches: number;
+  face_incidents: number;
+  phone_detected: boolean;
   created_at: string;
 }
 

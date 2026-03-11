@@ -1,13 +1,15 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { motion } from 'motion/react';
-import { ArrowLeft, Calendar, Tag, Share2, Bookmark } from 'lucide-react';
+import { ArrowLeft, Calendar, Tag, Share2, Bookmark, ExternalLink, FileText } from 'lucide-react';
 
 interface Update {
   id: number;
   type: 'vacancy' | 'admit_card' | 'result';
   title: string;
   content: string;
+  apply_link?: string;
+  syllabus_link?: string;
   posted_date: string;
 }
 
@@ -113,6 +115,32 @@ export default function UpdateBlog() {
                 <li>Keep a printout of the application form for future reference.</li>
               </ul>
               <p>Stay tuned to Prepinsta for more such updates and high-quality mock tests to boost your preparation.</p>
+            </div>
+
+            {/* Action Links */}
+            <div className="mt-10 flex flex-wrap gap-4">
+              {update.apply_link && (
+                <a 
+                  href={update.apply_link} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="flex-1 min-w-[200px] flex items-center justify-center gap-3 bg-emerald-600 text-white px-8 py-4 rounded-2xl font-black hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-200 group"
+                >
+                  <ExternalLink className="w-5 h-5 group-hover:scale-110 transition-transform" />
+                  {update.type === 'vacancy' ? 'Apply Now' : update.type === 'admit_card' ? 'Download Admit Card' : 'Check Result'}
+                </a>
+              )}
+              {update.syllabus_link && (
+                <a 
+                  href={update.syllabus_link} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="flex-1 min-w-[200px] flex items-center justify-center gap-3 bg-white border-2 border-slate-200 text-slate-700 px-8 py-4 rounded-2xl font-black hover:border-blue-600 hover:text-blue-600 transition-all group"
+                >
+                  <FileText className="w-5 h-5 group-hover:scale-110 transition-transform" />
+                  Download Syllabus
+                </a>
+              )}
             </div>
           </div>
 

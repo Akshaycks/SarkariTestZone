@@ -8,6 +8,18 @@ export default function Home() {
   const { user } = useAuth();
   const [streak, setStreak] = useState({ current_streak: 0, daily_goal_completed: 0 });
   const [updates, setUpdates] = useState<any[]>([]);
+  const [faqs, setFaqs] = useState<any[]>([]);
+  const [testimonials, setTestimonials] = useState<any[]>([]);
+  const [categories, setCategories] = useState<any[]>([]);
+  const [latestExams, setLatestExams] = useState<any[]>([]);
+
+  const FIXED_CATEGORIES = [
+    { name: 'SSC', color: 'bg-blue-500' },
+    { name: 'Banking', color: 'bg-emerald-500' },
+    { name: 'Railway', color: 'bg-orange-500' },
+    { name: 'UPSC', color: 'bg-purple-500' },
+    { name: 'Defence', color: 'bg-rose-500' }
+  ];
 
   useEffect(() => {
     if (user) {
@@ -18,16 +30,38 @@ export default function Home() {
 
     fetch('/api/updates')
       .then(res => res.json())
-      .then(data => setUpdates(data));
-  }, [user]);
+      .then(data => {
+        if (user && user.exam_interest) {
+          setUpdates(data.filter((u: any) => !u.category || u.category === user.exam_interest));
+        } else {
+          setUpdates(data);
+        }
+      });
 
-  const categories = [
-    { name: 'SSC', count: 12, color: 'bg-blue-500' },
-    { name: 'Banking', count: 8, color: 'bg-emerald-500' },
-    { name: 'Railway', count: 15, color: 'bg-orange-500' },
-    { name: 'UPSC', count: 5, color: 'bg-purple-500' },
-    { name: 'State Exams', count: 20, color: 'bg-rose-500' },
-  ];
+    fetch('/api/faqs')
+      .then(res => res.json())
+      .then(data => setFaqs(data));
+
+    fetch('/api/testimonials')
+      .then(res => res.json())
+      .then(data => setTestimonials(data));
+
+    fetch('/api/exams')
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data)) {
+          setLatestExams(data.slice(0, 6));
+          
+          const catsWithCounts = FIXED_CATEGORIES.map(cat => {
+            const count = data.filter((exam: any) => exam.category === cat.name).length;
+            return { ...cat, count };
+          });
+          
+          setCategories(catsWithCounts);
+        }
+      })
+      .catch(err => console.error("Error fetching exams:", err));
+  }, [user]);
 
   return (
     <div className="space-y-16 pb-20">
@@ -43,7 +77,7 @@ export default function Home() {
                 className="space-y-4"
               >
                 <h1 className="text-4xl sm:text-5xl lg:text-7xl font-black text-slate-900 leading-[1.1] tracking-tight">
-                  <span className="text-blue-600 bg-blue-50 px-2">ExamPrep Pro,</span> <br />
+                  <span className="text-blue-600 bg-blue-50 px-2">SarkariTestZone,</span> <br />
                   Government Exams <br />
                   Simplified!!!
                 </h1>
@@ -206,9 +240,15 @@ export default function Home() {
 
       {/* Categories */}
       <section className="container mx-auto px-4 space-y-10">
-        <div className="text-center space-y-3">
-          <h2 className="text-3xl lg:text-4xl font-black text-slate-900 tracking-tight">Top Exam Categories</h2>
-          <p className="text-slate-500 max-w-xl mx-auto font-medium text-sm lg:text-base">Choose from our wide range of mock tests designed by experts to help you crack your dream government job.</p>
+        <div className="flex items-end justify-between">
+          <div className="space-y-2">
+            <h2 className="text-3xl lg:text-4xl font-black text-slate-900 tracking-tight">Top Exam Categories</h2>
+            <p className="text-slate-500 font-medium text-sm lg:text-base">Explore mock tests by your target exam category.</p>
+          </div>
+          <Link to="/exams" className="hidden sm:flex items-center gap-2 text-blue-600 font-bold hover:underline">
+            View All Exams
+            <ArrowRight className="w-4 h-4" />
+          </Link>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 lg:gap-8">
           {categories.map((cat, idx) => (
@@ -238,38 +278,72 @@ export default function Home() {
         </div>
       </section>
 
+      {/* Latest Mock Tests Section */}
+      <section className="container mx-auto px-4 space-y-10">
+        <div className="flex items-end justify-between">
+          <div className="space-y-2">
+            <h2 className="text-3xl lg:text-4xl font-black text-slate-900 tracking-tight">Latest Mock Tests</h2>
+            <p className="text-slate-500 font-medium text-sm lg:text-base">Freshly added mock tests to boost your preparation.</p>
+          </div>
+          <Link to="/exams" className="flex items-center gap-2 text-blue-600 font-bold hover:underline">
+            View All
+            <ArrowRight className="w-4 h-4" />
+          </Link>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {latestExams.map((exam, idx) => (
+            <motion.div
+              key={exam.id}
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: idx * 0.05 }}
+              className="bg-white rounded-[32px] border border-slate-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 overflow-hidden group"
+            >
+              <div className="p-8 space-y-4">
+                <div className="flex items-center justify-between">
+                  <span className="bg-blue-50 text-blue-600 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest">
+                    {exam.category}
+                  </span>
+                  <div className="flex items-center gap-1 text-slate-400 text-[10px] font-bold uppercase tracking-widest">
+                    <Clock className="w-3 h-3" />
+                    {exam.duration} Min
+                  </div>
+                </div>
+                <h3 className="text-xl font-black text-slate-900 tracking-tight group-hover:text-blue-600 transition-colors">
+                  {exam.title}
+                </h3>
+                <div className="flex items-center gap-4 text-slate-500 text-xs font-bold uppercase tracking-widest">
+                  <div className="flex items-center gap-1">
+                    <HelpCircle className="w-4 h-4 text-slate-300" />
+                    {exam.total_questions} Questions
+                  </div>
+                </div>
+              </div>
+              <div className="p-4 bg-slate-50 border-t border-slate-100">
+                <Link 
+                  to={`/exams/${exam.id}/instructions`} 
+                  className="w-full bg-white border-2 border-blue-600 text-blue-600 py-3 rounded-2xl font-black hover:bg-blue-600 hover:text-white transition-all text-center flex items-center justify-center gap-2 text-sm"
+                >
+                  Take Mock Test
+                  <ArrowRight className="w-4 h-4" />
+                </Link>
+              </div>
+            </motion.div>
+          ))}
+        </div>
+      </section>
+
       {/* Testimonials */}
       <section className="container mx-auto px-4 space-y-12">
         <div className="text-center space-y-3">
           <h2 className="text-3xl lg:text-4xl font-black text-slate-900 tracking-tight">What Our Students Say</h2>
-          <p className="text-slate-500 max-w-xl mx-auto font-medium text-sm lg:text-base">Join thousands of successful candidates who cracked their exams with ExamPrep Pro.</p>
+          <p className="text-slate-500 max-w-xl mx-auto font-medium text-sm lg:text-base">Join thousands of successful candidates who cracked their exams with SarkariTestZone.</p>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
-          {[
-            {
-              name: "Anjali Sharma",
-              role: "SSC CGL Selected",
-              content: "The real CBT interface helped me overcome my exam anxiety. The detailed analysis is a game-changer!",
-              rating: 5,
-              avatar: "https://i.pravatar.cc/150?u=anjali"
-            },
-            {
-              name: "Rahul Verma",
-              role: "IBPS PO Aspirant",
-              content: "Best platform for banking mocks. The time management analytics are incredibly precise.",
-              rating: 5,
-              avatar: "https://i.pravatar.cc/150?u=rahul"
-            },
-            {
-              name: "Priya Singh",
-              role: "RRB NTPC Selected",
-              content: "I love the bilingual support. It made my preparation so much easier. Highly recommended!",
-              rating: 5,
-              avatar: "https://i.pravatar.cc/150?u=priya"
-            }
-          ].map((testimonial, idx) => (
+          {testimonials.map((testimonial, idx) => (
             <motion.div
-              key={testimonial.name}
+              key={testimonial.id || idx}
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
@@ -277,13 +351,13 @@ export default function Home() {
               className="bg-white p-8 rounded-[32px] border border-slate-100 shadow-sm relative"
             >
               <div className="flex gap-1 mb-4">
-                {[...Array(testimonial.rating)].map((_, i) => (
+                {[...Array(testimonial.rating || 5)].map((_, i) => (
                   <Star key={i} className="w-4 h-4 text-yellow-400 fill-yellow-400" />
                 ))}
               </div>
               <p className="text-slate-600 italic mb-6">"{testimonial.content}"</p>
               <div className="flex items-center gap-4">
-                <img src={testimonial.avatar} alt={testimonial.name} className="w-12 h-12 rounded-full border-2 border-blue-50" referrerPolicy="no-referrer" />
+                <img src={testimonial.avatar || `https://i.pravatar.cc/150?u=${testimonial.name}`} alt={testimonial.name} className="w-12 h-12 rounded-full border-2 border-blue-50 object-cover" referrerPolicy="no-referrer" />
                 <div>
                   <h4 className="font-bold text-slate-900">{testimonial.name}</h4>
                   <p className="text-xs text-blue-600 font-bold uppercase tracking-widest">{testimonial.role}</p>
@@ -316,7 +390,12 @@ export default function Home() {
                   </Link>
                 ))}
               </div>
-              <button className="text-blue-600 text-[10px] md:text-xs font-black uppercase tracking-widest hover:underline">View All Vacancies</button>
+              <Link 
+                to="/updates/vacancy" 
+                className="inline-block text-blue-600 text-[10px] md:text-xs font-black uppercase tracking-widest hover:underline"
+              >
+                View All Vacancies
+              </Link>
             </div>
 
             {/* Admit Cards */}
@@ -337,7 +416,12 @@ export default function Home() {
                   </Link>
                 ))}
               </div>
-              <button className="text-emerald-600 text-[10px] md:text-xs font-black uppercase tracking-widest hover:underline">Download Admit Cards</button>
+              <Link 
+                to="/updates/admit_card" 
+                className="inline-block text-emerald-600 text-[10px] md:text-xs font-black uppercase tracking-widest hover:underline"
+              >
+                Download Admit Cards
+              </Link>
             </div>
 
             {/* Results */}
@@ -358,7 +442,12 @@ export default function Home() {
                   </Link>
                 ))}
               </div>
-              <button className="text-orange-600 text-[10px] md:text-xs font-black uppercase tracking-widest hover:underline">Check All Results</button>
+              <Link 
+                to="/updates/result" 
+                className="inline-block text-orange-600 text-[10px] md:text-xs font-black uppercase tracking-widest hover:underline"
+              >
+                Check All Results
+              </Link>
             </div>
           </div>
         </div>
@@ -403,33 +492,12 @@ export default function Home() {
       <section className="container mx-auto px-4 space-y-12">
         <div className="text-center space-y-3">
           <h2 className="text-4xl font-black text-slate-900 tracking-tight">Frequently Asked Questions</h2>
-          <p className="text-slate-500 max-w-xl mx-auto font-medium">Everything you need to know about ExamPrep Pro and how we help you succeed.</p>
+          <p className="text-slate-500 max-w-xl mx-auto font-medium">Everything you need to know about SarkariTestZone and how we help you succeed.</p>
         </div>
         <div className="max-w-3xl mx-auto space-y-4">
-          {[
-            {
-              q: "Is ExamPrep Pro free to use?",
-              a: "Yes! We offer a wide range of high-quality mock tests for free. Our mission is to make quality exam preparation accessible to every student."
-            },
-            {
-              q: "How accurate is the CBT interface?",
-              a: "Our interface is designed to mirror the actual Computer Based Test (CBT) environment used by SSC, Banking, and Railway boards, ensuring you are fully prepared for the exam day."
-            },
-            {
-              q: "Can I track my progress over time?",
-              a: "Absolutely. Logged-in users get access to detailed performance analytics, streak tracking, and a history of all attempted mock tests."
-            },
-            {
-              q: "Are the questions updated regularly?",
-              a: "Yes, our team of experts regularly updates the question bank to reflect the latest exam patterns and difficulty levels."
-            },
-            {
-              q: "Is there a bilingual support for mock tests?",
-              a: "Yes, most of our mock tests are available in both English and Hindi to cater to a diverse range of students."
-            }
-          ].map((faq, idx) => (
+          {faqs.map((faq, idx) => (
             <motion.div
-              key={idx}
+              key={faq.id || idx}
               initial={{ opacity: 0, y: 10 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
@@ -438,9 +506,9 @@ export default function Home() {
             >
               <h3 className="text-lg font-bold text-slate-900 mb-2 flex items-center gap-3">
                 <HelpCircle className="w-5 h-5 text-blue-600" />
-                {faq.q}
+                {faq.question}
               </h3>
-              <p className="text-slate-600 leading-relaxed pl-8">{faq.a}</p>
+              <p className="text-slate-600 leading-relaxed pl-8">{faq.answer}</p>
             </motion.div>
           ))}
         </div>

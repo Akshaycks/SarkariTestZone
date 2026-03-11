@@ -3,10 +3,12 @@ import { Link } from 'react-router-dom';
 import { Exam } from '../types';
 import { BookOpen, Clock, HelpCircle, ArrowRight } from 'lucide-react';
 import { motion } from 'motion/react';
+import { cn } from '../utils';
 
 export default function ExamList() {
   const [exams, setExams] = useState<Exam[]>([]);
   const [loading, setLoading] = useState(true);
+  const [activeCategory, setActiveCategory] = useState('All');
 
   useEffect(() => {
     fetch('/api/exams')
@@ -17,15 +19,28 @@ export default function ExamList() {
       });
   }, []);
 
+  const filteredExams = activeCategory === 'All' 
+    ? exams 
+    : exams.filter(exam => exam.category === activeCategory);
+
   if (loading) return <div className="flex justify-center py-20"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div></div>;
 
   return (
     <div className="space-y-8">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <h1 className="text-4xl font-bold tracking-tight">Available Mock Tests</h1>
-        <div className="flex gap-2">
-          {['All', 'SSC', 'Banking', 'Railway', 'UPSC'].map(cat => (
-            <button key={cat} className="px-4 py-2 rounded-full border border-slate-200 hover:bg-slate-100 transition-colors text-sm font-medium">
+        <div className="flex flex-wrap gap-2">
+          {['All', 'SSC', 'Banking', 'Railway', 'UPSC', 'Defence'].map(cat => (
+            <button 
+              key={cat} 
+              onClick={() => setActiveCategory(cat)}
+              className={cn(
+                "px-4 py-2 rounded-full border transition-all text-sm font-bold uppercase tracking-widest",
+                activeCategory === cat 
+                  ? "bg-indigo-600 border-indigo-600 text-white shadow-lg shadow-indigo-100" 
+                  : "border-slate-200 text-slate-500 hover:bg-slate-100"
+              )}
+            >
               {cat}
             </button>
           ))}
@@ -33,7 +48,7 @@ export default function ExamList() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {exams.map((exam, idx) => (
+        {filteredExams.map((exam, idx) => (
           <motion.div
             key={exam.id}
             initial={{ opacity: 0, y: 20 }}
