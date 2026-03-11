@@ -9,6 +9,7 @@ import * as tf from '@tensorflow/tfjs-core';
 import '@tensorflow/tfjs-backend-webgl';
 import * as faceDetection from '@tensorflow-models/face-detection';
 import * as cocoSsd from '@tensorflow-models/coco-ssd';
+import { api } from '../services/api';
 
 export default function ExamPage() {
   const { id } = useParams();
@@ -45,16 +46,11 @@ export default function ExamPage() {
 
   // Initialize exam
   useEffect(() => {
+    if (!id) return;
     setLoading(true);
-    fetch(`/api/exams/${id}`)
-      .then(res => {
-        if (!res.ok) throw new Error('Failed to fetch exam');
-        return res.json();
-      })
+    api.getExamById(id)
       .then(data => {
-        // Randomize questions (optional, but keeping it for now)
-        // const shuffledQuestions = shuffle(data.questions);
-        const examData = { ...data, questions: data.questions };
+        const examData = data;
         setExam(examData);
         
         // Check for auto-saved progress
@@ -410,6 +406,19 @@ export default function ExamPage() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(resultData)
+    }).catch(() => {
+      // Netlify Fallback
+      const mockResultId = Date.now();
+      // Store in localStorage so ResultPage can find it
+      localStorage.setItem(`mock_result_${mockResultId}`, JSON.stringify({
+        id: mockResultId,
+        ...resultData,
+        submittedAt: new Date().toISOString()
+      }));
+      return {
+        ok: true,
+        json: async () => ({ id: mockResultId })
+      } as Response;
     });
     
     localStorage.removeItem(`exam_progress_${id}`);
@@ -420,6 +429,9 @@ export default function ExamPage() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ userId: user.id })
+    }).catch(() => {
+      // Ignore streak update failure on Netlify
+      return { ok: true } as Response;
     });
 
     navigate(`/results/${resultId}`);

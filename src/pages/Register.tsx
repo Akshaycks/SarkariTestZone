@@ -5,6 +5,8 @@ import { UserPlus, Lock, User as UserIcon, Phone, Send } from 'lucide-react';
 import { motion } from 'motion/react';
 import Notification from '../components/Notification';
 
+import { api } from '../services/api';
+
 export default function Register() {
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
@@ -26,18 +28,13 @@ export default function Register() {
       return;
     }
     setError('');
-    const res = await fetch('/api/auth/send-otp', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ phone })
-    });
-    if (res.ok) {
-      const data = await res.json();
+    const result = await api.sendOtp(phone);
+
+    if (result.ok) {
       setOtpSent(true);
-      // In a real app, we wouldn't show the OTP in an alert, but for simulation:
       setNotification({
         show: true,
-        message: `Simulated OTP: ${data.otp}`,
+        message: `Simulated OTP: ${result.otp || '123456'}`,
         type: 'success'
       });
     } else {
@@ -52,19 +49,13 @@ export default function Register() {
       return;
     }
     setError('');
-    const res = await fetch('/api/auth/register', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, phone, exam_interest: examInterest, otp })
-    });
+    const result = await api.register({ name, phone, exam_interest: examInterest, otp });
     
-    if (res.ok) {
-      const user = await res.json();
-      login(user);
+    if (result.ok) {
+      login(result.user);
       navigate('/');
     } else {
-      const data = await res.json();
-      setError(data.error || 'Registration failed');
+      setError(result.error || 'Registration failed');
     }
   };
 

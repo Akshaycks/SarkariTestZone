@@ -4,6 +4,7 @@ import { ExamResult, Question } from '../types';
 import { Trophy, Target, Clock, Zap, ChevronRight, BarChart3, BookOpen, CheckCircle2, XCircle, HelpCircle, Lightbulb, AlertTriangle } from 'lucide-react';
 import { cn } from '../utils';
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend } from 'recharts';
+import { api } from '../services/api';
 
 export default function ResultPage() {
   const { id } = useParams();
@@ -12,14 +13,14 @@ export default function ResultPage() {
   const [activeTab, setActiveTab] = useState<'summary' | 'analysis' | 'review'>('summary');
 
   useEffect(() => {
-    fetch(`/api/results/${id}`)
-      .then(res => res.json())
+    if (!id) return;
+    api.getResultById(id)
       .then(data => {
+        if (!data) return;
         setResult(data);
         // Fetch questions for review
-        fetch(`/api/exams/${data.exam_id}`)
-          .then(res => res.json())
-          .then(examData => setQuestions(examData.questions));
+        api.getExamById(data.exam_id)
+          .then(examData => setQuestions(examData.questions || []));
       });
   }, [id]);
 

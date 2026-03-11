@@ -3,6 +3,8 @@ import { ArrowRight, BookOpen, Clock, HelpCircle, LayoutDashboard, Flame, Target
 import { motion } from 'motion/react';
 import { useAuth } from '../context/AuthContext';
 import { useState, useEffect } from 'react';
+import { api } from '../services/api';
+import { ExamUpdate, FAQ, Testimonial, Exam } from '../types';
 
 export default function Home() {
   const { user } = useAuth();
@@ -25,42 +27,34 @@ export default function Home() {
     if (user) {
       fetch(`/api/streaks/${user.id}`)
         .then(res => res.json())
-        .then(data => setStreak(data));
+        .then(data => setStreak(data))
+        .catch(() => {}); // Silent fail for streaks on Netlify
     }
 
-    fetch('/api/updates')
-      .then(res => res.json())
-      .then(data => {
-        if (user && user.exam_interest) {
-          setUpdates(data.filter((u: any) => !u.category || u.category === user.exam_interest));
-        } else {
-          setUpdates(data);
-        }
-      });
+    api.getUpdates().then(data => {
+      if (user && user.exam_interest) {
+        setUpdates(data.filter((u: ExamUpdate) => !u.category || u.category === user.exam_interest));
+      } else {
+        setUpdates(data);
+      }
+    });
 
-    fetch('/api/faqs')
-      .then(res => res.json())
-      .then(data => setFaqs(data));
+    api.getFAQs().then(data => setFaqs(data));
 
-    fetch('/api/testimonials')
-      .then(res => res.json())
-      .then(data => setTestimonials(data));
+    api.getTestimonials().then(data => setTestimonials(data));
 
-    fetch('/api/exams')
-      .then(res => res.json())
-      .then(data => {
-        if (Array.isArray(data)) {
-          setLatestExams(data.slice(0, 6));
-          
-          const catsWithCounts = FIXED_CATEGORIES.map(cat => {
-            const count = data.filter((exam: any) => exam.category === cat.name).length;
-            return { ...cat, count };
-          });
-          
-          setCategories(catsWithCounts);
-        }
-      })
-      .catch(err => console.error("Error fetching exams:", err));
+    api.getExams().then(data => {
+      if (Array.isArray(data)) {
+        setLatestExams(data.slice(0, 6));
+        
+        const catsWithCounts = FIXED_CATEGORIES.map(cat => {
+          const count = data.filter((exam: Exam) => exam.category === cat.name).length;
+          return { ...cat, count };
+        });
+        
+        setCategories(catsWithCounts);
+      }
+    });
   }, [user]);
 
   return (

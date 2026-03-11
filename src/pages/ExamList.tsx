@@ -4,6 +4,7 @@ import { Exam } from '../types';
 import { BookOpen, Clock, HelpCircle, ArrowRight } from 'lucide-react';
 import { motion } from 'motion/react';
 import { cn } from '../utils';
+import { api } from '../services/api';
 
 export default function ExamList() {
   const [exams, setExams] = useState<Exam[]>([]);
@@ -11,12 +12,25 @@ export default function ExamList() {
   const [activeCategory, setActiveCategory] = useState('All');
 
   useEffect(() => {
-    fetch('/api/exams')
-      .then(res => res.json())
+    const timer = setTimeout(() => {
+      if (loading) {
+        setLoading(false);
+        setExams([]);
+      }
+    }, 5000);
+
+    api.getExams()
       .then(data => {
         setExams(data);
         setLoading(false);
-      });
+      })
+      .catch(() => {
+        setExams([]);
+        setLoading(false);
+      })
+      .finally(() => clearTimeout(timer));
+
+    return () => clearTimeout(timer);
   }, []);
 
   const filteredExams = activeCategory === 'All' 

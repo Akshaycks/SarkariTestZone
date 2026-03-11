@@ -5,6 +5,8 @@ import { LogIn, Lock, Phone, Send, ShieldCheck } from 'lucide-react';
 import { motion } from 'motion/react';
 import Notification from '../components/Notification';
 
+import { api } from '../services/api';
+
 export default function Login() {
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
@@ -26,17 +28,13 @@ export default function Login() {
       return;
     }
     setError('');
-    const res = await fetch('/api/auth/send-otp', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ phone })
-    });
-    if (res.ok) {
-      const data = await res.json();
+    const result = await api.sendOtp(phone);
+
+    if (result.ok) {
       setOtpSent(true);
       setNotification({
         show: true,
-        message: `Simulated OTP: ${data.otp}`,
+        message: `Simulated OTP: ${result.otp || '123456'}`,
         type: 'success'
       });
     } else {
@@ -59,19 +57,13 @@ export default function Login() {
       payload.otp = otp;
     }
 
-    const res = await fetch('/api/auth/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    });
+    const result = await api.login(payload);
     
-    if (res.ok) {
-      const user = await res.json();
-      login(user);
+    if (result.ok) {
+      login(result.user);
       navigate('/');
     } else {
-      const data = await res.json();
-      setError(data.error || 'Login failed');
+      setError(result.error || 'Login failed');
     }
   };
 

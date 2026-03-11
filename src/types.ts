@@ -58,3 +58,30 @@ export interface ExamResult {
 }
 
 export type QuestionStatus = 'not_visited' | 'not_answered' | 'answered' | 'marked_for_review';
+
+export interface ExamUpdate {
+  id: number;
+  type: 'vacancy' | 'admit_card' | 'result';
+  category?: string;
+  title: string;
+  content: string;
+  apply_link?: string;
+  syllabus_link?: string;
+  posted_date: string;
+}
+
+export interface FAQ {
+  id: number;
+  question: string;
+  answer: string;
+  order_index: number;
+}
+
+export interface Testimonial {
+  id: number;
+  name: string;
+  role: string;
+  content: string;
+  avatar?: string;
+  rating: number;
+}

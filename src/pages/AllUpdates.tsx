@@ -3,30 +3,22 @@ import { useParams, Link } from 'react-router-dom';
 import { motion } from 'motion/react';
 import { Calendar, ArrowRight, ChevronRight, Search, Filter } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-
-interface Update {
-  id: number;
-  type: 'vacancy' | 'admit_card' | 'result';
-  category?: string;
-  title: string;
-  content: string;
-  posted_date: string;
-}
+import { api } from '../services/api';
+import { ExamUpdate } from '../types';
 
 const AllUpdates: React.FC = () => {
   const { type } = useParams<{ type: string }>();
   const { user } = useAuth();
-  const [updates, setUpdates] = useState<Update[]>([]);
+  const [updates, setUpdates] = useState<ExamUpdate[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
-    fetch('/api/updates')
-      .then(res => res.json())
+    api.getUpdates()
       .then(data => {
-        let filtered = data.filter((u: Update) => u.type === type);
+        let filtered = data.filter((u: ExamUpdate) => u.type === type);
         if (user && user.exam_interest) {
-          filtered = filtered.filter((u: Update) => !u.category || u.category === user.exam_interest);
+          filtered = filtered.filter((u: ExamUpdate) => !u.category || u.category === user.exam_interest);
         }
         setUpdates(filtered);
         setLoading(false);
@@ -35,7 +27,7 @@ const AllUpdates: React.FC = () => {
         console.error('Error fetching updates:', err);
         setLoading(false);
       });
-  }, [type]);
+  }, [type, user]);
 
   const getTitle = () => {
     switch (type) {

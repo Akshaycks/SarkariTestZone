@@ -3,16 +3,20 @@ import { ExamResult } from '../types';
 import { Trophy, Medal, User, Calendar } from 'lucide-react';
 import { format } from 'date-fns';
 import { motion } from 'motion/react';
+import { api } from '../services/api';
 
 export default function Leaderboard() {
   const [results, setResults] = useState<ExamResult[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch('/api/leaderboard')
-      .then(res => res.json())
+    api.getLeaderboard()
       .then(data => {
         setResults(data);
+        setLoading(false);
+      })
+      .catch(err => {
+        console.error('Error fetching leaderboard:', err);
         setLoading(false);
       });
   }, []);

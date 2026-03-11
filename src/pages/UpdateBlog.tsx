@@ -2,27 +2,23 @@ import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { motion } from 'motion/react';
 import { ArrowLeft, Calendar, Tag, Share2, Bookmark, ExternalLink, FileText } from 'lucide-react';
-
-interface Update {
-  id: number;
-  type: 'vacancy' | 'admit_card' | 'result';
-  title: string;
-  content: string;
-  apply_link?: string;
-  syllabus_link?: string;
-  posted_date: string;
-}
+import { api } from '../services/api';
+import { ExamUpdate } from '../types';
 
 export default function UpdateBlog() {
   const { id } = useParams();
-  const [update, setUpdate] = useState<Update | null>(null);
+  const [update, setUpdate] = useState<ExamUpdate | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch(`/api/updates/${id}`)
-      .then(res => res.json())
+    if (!id) return;
+    api.getUpdateById(id)
       .then(data => {
         setUpdate(data);
+        setLoading(false);
+      })
+      .catch(err => {
+        console.error('Error fetching update:', err);
         setLoading(false);
       });
   }, [id]);

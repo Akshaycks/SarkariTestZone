@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import { motion } from 'motion/react';
 import { ArrowRight, BookOpen, ChevronRight, Search, Clock, HelpCircle } from 'lucide-react';
 import { Exam } from '../types';
+import { api } from '../services/api';
 
 export default function CategoryPage() {
   const { categoryName } = useParams<{ categoryName: string }>();
@@ -11,8 +12,7 @@ export default function CategoryPage() {
   const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
-    fetch('/api/exams')
-      .then(res => res.json())
+    api.getExams()
       .then(data => {
         if (Array.isArray(data)) {
           const filtered = data.filter((exam: Exam) => exam.category === categoryName);

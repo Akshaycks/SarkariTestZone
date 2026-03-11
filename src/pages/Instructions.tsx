@@ -3,6 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { cn } from '../utils';
 import { Exam } from '../types';
 import { Info, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { api } from '../services/api';
 
 export default function Instructions() {
   const { id } = useParams();
@@ -13,9 +14,9 @@ export default function Instructions() {
   const [selectedLang, setSelectedLang] = useState('');
 
   useEffect(() => {
-    fetch(`/api/exams/${id}`)
-      .then(res => res.json())
-      .then(data => setExam(data));
+    if (id) {
+      api.getExamById(id).then(data => setExam(data));
+    }
   }, [id]);
 
   if (!exam) return null;

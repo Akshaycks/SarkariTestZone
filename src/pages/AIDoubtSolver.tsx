@@ -45,11 +45,15 @@ export default function AIDoubtSolver() {
     setIsLoading(true);
 
     try {
-      const env = (typeof process !== 'undefined' ? process.env : {}) as any;
-      const apiKey = env.GEMINI_API_KEY || env.API_KEY;
+      const apiKey = import.meta.env.VITE_GEMINI_API_KEY || import.meta.env.VITE_API_KEY;
       
       if (!apiKey) {
-        throw new Error("API Key is missing.");
+        setMessages(prev => [...prev, {
+          role: 'ai',
+          content: "I'm currently in demo mode on Netlify and my API key is not configured. To enable AI responses, please set the VITE_GEMINI_API_KEY environment variable in your Netlify dashboard.",
+          timestamp: new Date()
+        }]);
+        return;
       }
 
       const ai = new GoogleGenAI({ apiKey });
