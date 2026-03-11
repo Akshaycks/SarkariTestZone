@@ -367,7 +367,17 @@ export default function ExamPage() {
   };
 
   const handleSubmit = async () => {
-    if (!exam || !user) return;
+    if (!exam) return;
+    
+    if (!user) {
+      setConfirmModal({
+        show: true,
+        title: "Login Required",
+        message: "You must be logged in to submit the test. Your progress is saved locally.",
+        onConfirm: () => navigate('/login')
+      });
+      return;
+    }
     
     let correct = 0;
     let wrong = 0;
@@ -402,39 +412,50 @@ export default function ExamPage() {
       phoneDetected: phoneDetected
     };
 
-    const res = await fetch('/api/results', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(resultData)
-    }).catch(() => {
-      // Netlify Fallback
+    try {
+      const res = await fetch('/api/results', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(resultData)
+      });
+
+      let resultId;
+      if (res.ok) {
+        const data = await res.json();
+        resultId = data.id;
+      } else {
+        // Fallback for Netlify if 404/500
+        const mockResultId = Date.now();
+        localStorage.setItem(`mock_result_${mockResultId}`, JSON.stringify({
+          id: mockResultId,
+          ...resultData,
+          submittedAt: new Date().toISOString()
+        }));
+        resultId = mockResultId;
+      }
+      
+      localStorage.removeItem(`exam_progress_${id}`);
+      
+      // Update streak (fire and forget on Netlify)
+      fetch('/api/streaks/update', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user.id })
+      }).catch(() => {});
+
+      navigate(`/results/${resultId}`);
+    } catch (error) {
+      // Netlify Fallback for network error
       const mockResultId = Date.now();
-      // Store in localStorage so ResultPage can find it
       localStorage.setItem(`mock_result_${mockResultId}`, JSON.stringify({
         id: mockResultId,
         ...resultData,
         submittedAt: new Date().toISOString()
       }));
-      return {
-        ok: true,
-        json: async () => ({ id: mockResultId })
-      } as Response;
-    });
-    
-    localStorage.removeItem(`exam_progress_${id}`);
-    const { id: resultId } = await res.json();
-
-    // Update streak
-    await fetch('/api/streaks/update', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId: user.id })
-    }).catch(() => {
-      // Ignore streak update failure on Netlify
-      return { ok: true } as Response;
-    });
-
-    navigate(`/results/${resultId}`);
+      
+      localStorage.removeItem(`exam_progress_${id}`);
+      navigate(`/results/${mockResultId}`);
+    }
   };
 
   const handleReport = async () => {
@@ -825,7 +846,14 @@ export default function ExamPage() {
               Submit Section
             </button>
             <button 
-              onClick={handleSubmit}
+              onClick={() => {
+                setConfirmModal({
+                  show: true,
+                  title: "Submit Test",
+                  message: "Are you sure you want to submit the entire test? You won't be able to change your answers after this.",
+                  onConfirm: () => handleSubmit()
+                });
+              }}
               className="w-full py-2.5 bg-blue-600 text-white rounded-lg font-bold text-xs hover:bg-blue-700 transition-colors shadow-md active:transform active:scale-[0.98]"
             >
               Submit Test
